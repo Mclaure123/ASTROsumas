@@ -3,295 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Astro-Cálculo v3</title>
+    <title>Astro-Cálculo DEFINITIVE</title>
     <style>
         :root {
-            --primary-color: #00FFFF; --secondary-color: #FFFFFF; --background-color: #000000;
-            --success-color: #00FF00; --error-color: #FF0000; --action-color: #28a745;
-            --locked-color: #555555; --gold-color: #FFD700; --silver-color: #C0C0C0; --bronze-color: #CD7F32;
-            --singularity-color: #9400D3; --hint-color: #FFD700;
+            --primary-color: #FF00FF;
+            --secondary-color: #FFFFFF;
+            --background-color: #000000;
+            --success-color: #FFFFFF; 
+            --error-color: #FF6347;
+            --action-color: #9932CC;
+            --shutdown-color: #FF6347;
+            --locked-color: #444444;
+            --gold-color: #FFD700;
+            --silver-color: #C0C0C0;
+            --bronze-color: #CD7F32;
+            --singularity-color: #9400D3;
+            --hint-color: #FFD700;
+            --shift-active-color: #FFA500;
             --font: monospace, sans-serif;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         html, body { width: 100%; height: 100%; overflow: hidden; background-color: var(--background-color); color: var(--secondary-color); font-family: var(--font); user-select: none; }
-        .app-container { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1vmin; }
-        .screen { width: 100%; height: 100%; padding: 2vh 4vw; display: none; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; animation: fadeIn 0.5s ease-in-out; }
+        .app-container { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1.5s ease-out; }
+        .app-container.shutting-down { opacity: 0; }
+        .screen { width: 100%; height: 100%; padding: 2vh 2vw; display: none; flex-direction: column; justify-content: space-between; align-items: center; text-align: center; animation: fadeIn 0.5s ease-in-out; }
         .screen.active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .zone { width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .zone.top { flex: 1; justify-content: flex-start; }
-        .zone.middle { flex: 3; overflow-y: auto; overflow-x: hidden; }
-        .zone.bottom { flex: 1; justify-content: flex-end; }
-        .zone.middle::-webkit-scrollbar { display: none; }
-        .zone.middle { -ms-overflow-style: none; scrollbar-width: none; }
-        h1, h2, h3 { font-weight: normal; }
-        .level-btn { padding: 2vh 1vw; border: 2px solid var(--primary-color); font-size: calc(1.2vw + 1.2vh); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; width: 100%; }
-        .keyboard-key { margin: 0.5vmin; display: flex; justify-content: center; align-items: center; background-color: #222; border: 1px solid var(--primary-color); border-radius: 5px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
-        .keyboard-key:active, .key-active-feedback { transform: scale(0.95); background-color: var(--primary-color); color: var(--background-color); }
-        .keyboard-key:hover:not(.key-active-feedback) { background-color: var(--primary-color); color: var(--background-color); }
-        #title-screen h1 { font-size: calc(6vw + 6vh); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color); }
-        #title-screen p { margin-top: 2vh; font-size: calc(1.5vw + 1.5vh); animation: blink 1.5s infinite; }
+        .zone.top { flex: 0 0 auto; }
+        .zone.middle { flex: 1 1 auto; overflow: hidden; gap: 2vh; min-height: 0; }
+        .zone.bottom { flex: 0 0 auto; }
+        
+        h1, h2, h3, p { font-weight: normal; margin: 0; }
+        .title-h1 { font-size: calc(6vw + 6vh); color: var(--primary-color); text-shadow: 0 0 10px var(--primary-color); }
+        .title-p { margin-top: 2vh; font-size: calc(1.5vw + 1.5vh); animation: blink 1.5s infinite; }
         @keyframes blink { 50% { opacity: 0.3; } }
-        #name-screen .zone.middle { font-size: calc(1.5vw + 1.5vh); }
-        #player-name-output { font-size: calc(4vw + 4vh); border: 2px solid var(--primary-color); padding: 10px 20px; min-height: 1.5em; width: 90%; max-width: 800px; display: block; margin-bottom: 2vh; }
-        .name-cursor { display: inline-block; width: 0.4em; height: 1em; background-color: var(--secondary-color); animation: blink 1s infinite; }
-        #alpha-keyboard { display: grid; width: 100%; max-width: 90vh; grid-template-columns: repeat(9, 1fr); gap: 1vmin; }
-        #alpha-keyboard .keyboard-key { font-size: calc(1.5vw + 1.5vh); aspect-ratio: 1/1; }
-        #special-keys { display: flex; width: 100%; max-width: 90vh; gap: 1vmin; margin-top: 1vmin; }
-        .level-options { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 2vmin; align-content: flex-start; padding: 2vh 0; }
-        .level-btn:not(.locked):hover { transform: scale(1.05); }
-        .level-btn.locked { border-color: var(--locked-color); color: var(--locked-color); cursor: not-allowed; }
-        .level-highscore { font-size: 0.8rem; color: var(--primary-color); margin-top: 5px; }
-        .singularity-btn { border-color: var(--singularity-color); color: var(--singularity-color); animation: pulse-singularity 2s infinite; grid-column: 1 / -1; }
-        @keyframes pulse-singularity { 50% { box-shadow: 0 0 15px var(--singularity-color); } }
-        #game-header { font-size: calc(1.2vw + 1.2vh); opacity: 0.8; display: flex; justify-content: space-between; width: 100%; max-width: 900px; }
-        #problem-container { display: flex; flex-direction: column; align-items: center; gap: 2vh; }
-        #problem-display { font-size: calc(7vw + 7vh); display: flex; align-items: center; gap: 2vw; }
+
+        #bios-screen { position: relative; justify-content: center; align-items: center; padding: 2vh; }
+        #bios-screen::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; z-index: 2; pointer-events: none; animation: scanline 10s linear infinite; }
+        @keyframes scanline { from { background-position: 0 0; } to { background-position: 0 100px; } }
+        #bios-background-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(auto-fill, minmax(20px, 1fr)); z-index: 0; color: var(--primary-color); opacity: 0.1; font-size: 12px; animation: flicker 0.1s infinite; }
+        @keyframes flicker { 50% { opacity: 0.08; } }
+        #bios-content-container { z-index: 1; display: flex; flex-direction: column; width: 95%; max-width: 800px; border: 1px solid var(--primary-color); padding: 2vmin; background-color: rgba(0,0,0,0.5); }
+        #bios-title { font-size: calc(1vw + 1vh); color: var(--primary-color); text-align: left; margin-bottom: 1.5vh; border-bottom: 1px solid var(--primary-color); padding-bottom: 1vh; }
+        #bios-log { align-self: flex-start; font-size: calc(1vw + 1vh); white-space: pre-wrap; text-shadow: 0 0 5px var(--primary-color); text-align: left; }
+        #bios-progress-bar-container { width: 100%; height: 10px; border: 1px solid var(--primary-color); padding: 2px; margin-top: 1.5vh; }
+        #bios-progress-bar { width: 0%; height: 100%; background-color: var(--primary-color); transition: width 0.1s linear; }
+
+        .btn-base { padding: 2vh 1vw; border: 2px solid var(--primary-color); font-size: calc(1.1vw + 1.1vh); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
+        .btn-base:hover:not(.locked) { transform: scale(1.03); box-shadow: 0 0 10px var(--primary-color); }
+        .btn-shutdown { border-color: var(--shutdown-color); color: var(--shutdown-color); }
+        .btn-shutdown:hover { box-shadow: 0 0 10px var(--shutdown-color); }
+        
+        #cadet-select-list { display: flex; flex-direction: column; gap: 2vh; width: 100%; max-width: 600px; max-height: 100%; overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
+        
+        #name-screen .zone.middle { gap: 2vh; justify-content: center; }
+        #player-name-output { flex-shrink: 0; font-size: clamp(24px, calc(4vw + 4vh), 90px); border: 2px solid var(--primary-color); padding: 10px 20px; min-height: 1.5em; width: 95%; max-width: 1000px; display: flex; align-items: center; justify-content: center; }
+        .name-cursor { width: 0.4em; height: 1em; background-color: var(--secondary-color); animation: blink 1s infinite; margin-left: 0.2em; }
+        
+        #alpha-keyboard-container { display: flex; flex-direction: column; width: 100%; max-width: 100vh; gap: 1vmin; }
+        .keyboard-row { display: flex; justify-content: center; width: 100%; gap: 1vmin; }
+        .keyboard-key { display: flex; flex-grow: 1; justify-content: center; align-items: center; background-color: #222; border: 1px solid var(--primary-color); border-radius: 5px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; font-size: clamp(12px, calc(1.2vw + 1.2vh), 28px); padding: 1.5vmin 0; }
+        .keyboard-key.key-special { flex-grow: 1.5; }
+        .keyboard-key:active { transform: scale(0.95); }
+        .key-shift.active { border-color: var(--shift-active-color); box-shadow: 0 0 5px var(--shift-active-color); }
+
+        #level-select-screen .zone.middle { max-width: 800px; width: 100%; }
+        .level-options { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 1.5vh; overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
+        .level-options::-webkit-scrollbar { display: none; }
+        .level-btn { border: 2px solid var(--primary-color); cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; overflow: hidden; }
+        .level-btn-header { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .level-btn-header > span { padding: 1.5vh 2vw; }
+        .level-btn-details { max-height: 0; opacity: 0; transition: all 0.3s ease; padding: 0 2vw; }
+        .level-btn.expanded .level-btn-details { max-height: 20vh; opacity: 1; padding-bottom: 1.5vh; }
+        .level-btn.completed { border-color: var(--action-color); }
+        .level-btn.active { border-color: var(--primary-color); box-shadow: 0 0 10px var(--primary-color); }
+        .level-btn.active .level-btn-details { max-height: 20vh; opacity: 1; padding-bottom: 1.5vh; }
+        .level-btn.locked { border-color: var(--locked-color); filter: grayscale(80%); opacity: 0.7; pointer-events: none; }
+        .level-btn.locked .level-btn-header::after { content: '🔒'; padding-right: 2vw; }
+        .level-highscore { font-size: 0.8em; color: var(--gold-color); }
+        
+        #game-header { font-size: calc(1.2vw + 1.2vh); opacity: 0.8; display: flex; justify-content: space-between; width: 100%; max-width: 1000px; }
+        #problem-display { display: flex; align-items: center; justify-content: center; width: 100%; gap: 2vw; white-space: nowrap; }
+        
+        /* -- ABSOLUTE ALIGNMENT GRID -- */
+        .problem-vertical { display: grid !important; grid-template-columns: auto 1fr; justify-content: center; gap: 1vh 1ch; width: auto !important; }
+        .problem-vertical > * { text-align: right; }
+        .problem-vertical .op1 { grid-column: 2; }
+        .problem-vertical .operator { grid-column: 1; grid-row: 2; }
+        .problem-vertical .op2 { grid-column: 2; grid-row: 2; }
+        .problem-vertical .line { grid-column: 1 / -1; height: 2px; background: var(--primary-color); margin-top: 1vh; }
+        .problem-vertical #answer-box { grid-column: 1 / -1; width: 100%; }
+
         #hint-display { font-size: calc(1.2vw + 1.2vh); color: var(--hint-color); height: 1.5em; }
-        #answer-box { border: 2px solid var(--primary-color); padding: 0 1vw; min-width: 1.5em; text-align: center; }
-        #answer-box.correct { animation: correct-flash 0.5s; } @keyframes correct-flash { 50% { background: var(--success-color); border-color: var(--success-color); color: var(--background-color); } }
-        #answer-box.incorrect { animation: incorrect-flash 0.5s; } @keyframes incorrect-flash { 50% { background: var(--error-color); border-color: var(--error-color); color: var(--background-color); } }
-        #numpad { width: 100%; max-width: 35vh; aspect-ratio: 3 / 4; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 1vmin; }
-        #numpad .keyboard-key { font-size: calc(2vw + 2vh); flex: 1; }
-        #numpad .key-launch { background-color: var(--action-color); border-color: var(--action-color); color: var(--secondary-color); font-weight: bold; }
-        .cadet-info-section { width: 100%; margin-bottom: 2vh; }
-        .cadet-info-section h3 { color: var(--primary-color); border-bottom: 1px solid var(--primary-color); padding-bottom: 5px; margin-bottom: 10px; text-align: left; }
-        .records-grid { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-        .record-item { display: flex; align-items: center; gap: 10px; }
-        .medal-panel { display: flex; gap: 10px; align-items: center; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.2s; }
-        .modal-content { background: var(--background-color); padding: 4vmin; border: 2px solid var(--error-color); text-align: center; max-width: 600px; width: 90%; }
-        .modal-content h3 { color: var(--error-color); margin-bottom: 1.5vh; }
-        .modal-content p { margin-bottom: 2vh; }
-        .modal-input { width: 100%; padding: 10px; background: #111; border: 1px solid var(--primary-color); color: var(--secondary-color); font-family: var(--font); font-size: 1.2rem; text-align: center; margin-bottom: 2vh; }
-        .modal-options { display: flex; gap: 2vmin; justify-content: center; }
-        .modal-btn { padding: 10px 20px; border: 2px solid var(--secondary-color); cursor: pointer; flex-grow: 1; }
-        .modal-btn.confirm-btn { border-color: var(--error-color); color: var(--error-color); }
-        .modal-btn:disabled { border-color: var(--locked-color); color: var(--locked-color); cursor: not-allowed; opacity: 0.5; }
-        .hidden { display: none; }
+        #answer-box { position: relative; border: 2px solid var(--primary-color); min-width: 2em; min-height: 1.2em; text-align: right; }
+        #answer-box.correct, #answer-box.incorrect { animation-duration: 0.5s; }
+        #answer-box.correct { animation-name: correct-flash; }
+        #answer-box.incorrect { animation-name: incorrect-flash; }
+        @keyframes correct-flash { 50% { background: var(--success-color); border-color: var(--primary-color); } }
+        @keyframes incorrect-flash { 50% { background: var(--error-color); border-color: var(--error-color); } }
+        #placeholder-display, #user-input-display { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: flex-end; font: inherit; padding: 0 1vw; }
+        #placeholder-display { opacity: 0.3; }
+        #user-input-display { color: var(--secondary-color); }
+        #answer-box.correct #user-input-display, #answer-box.incorrect #user-input-display { color: var(--background-color); }
+        
+        #game-screen .zone.bottom { flex-grow: 1; flex-shrink: 1; max-height: 45vh; justify-content: center; }
+        #numpad { width: 100%; height: 100%; max-width: 60vh; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 2vmin; }
+        #numpad .keyboard-key { font-size: clamp(16px, calc(2vw + 2vh), 42px); padding: 0; background-color: #222; border-color: var(--action-color); height: 100%; }
+        #numpad .keyboard-key:hover { background-color: var(--action-color); color: var(--background-color); }
+        #numpad .key-launch { background-color: var(--action-color); color: var(--background-color); font-weight: bold; }
+        #end-unlock-message { color: var(--primary-color); text-shadow: 0 0 5px var(--primary-color); font-size: calc(1.2vw + 1.2vh); margin-top: 3vh; animation: fadeIn 1s; }
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <div id="app-container" class="app-container">
         <!-- Screens -->
-        <div id="bios-screen" class="screen active"><div id="bios-log" style="align-self: flex-start; font-size: calc(1.2vw + 1.2vh); white-space: pre-wrap;"></div></div>
-        <div id="title-screen" class="screen"><div class="zone middle"><h1>ASTRO-CÁLCULO</h1><p>[ PULSA AQUÍ PARA INICIAR ]</p></div></div>
-        <div id="name-screen" class="screen"><div class="zone top"><h2>REGISTRO DE CADETE</h2></div><div class="zone middle"><div id="player-name-output"><span class="name-cursor"></span></div><div id="alpha-keyboard"></div><div id="special-keys"></div></div><div class="zone bottom"></div></div>
-        <div id="level-select-screen" class="screen"><div class="zone top"><h2 id="level-select-header"></h2></div><div class="zone middle"><div class="level-options" id="level-options-container"></div></div><div class="zone bottom"><div class="level-btn" id="view-cadet-file-btn" style="max-width: 600px;">VER FICHA DE CADETE</div></div></div>
-        <div id="game-screen" class="screen"><div class="zone top"><div id="game-header"><span id="game-mission-info"></span><span id="game-stats"></span></div></div><div class="zone middle"><div id="problem-container"><div id="problem-display"></div><div id="hint-display"></div></div></div><div class="zone bottom"><div id="numpad"></div></div></div>
-        <div id="end-screen" class="screen"><div class="zone middle"><div><h2 id="end-title"></h2><h3 id="end-cadet-info"></h3><p id="end-score"></p><div class="end-options"><div class="level-btn" id="return-to-map-btn">VOLVER AL MAPA ESTELAR</div><div class="level-btn" id="repeat-mission-btn">REPETIR MISIÓN</div></div></div></div></div>
-        <div id="cadet-file-screen" class="screen"><div class="zone top"><h2>FICHA DE CADETE</h2></div><div class="zone middle" id="cadet-file-content"></div><div class="zone bottom"><div class="level-btn" id="cadet-file-back-btn" style="max-width: 600px;">VOLVER AL MAPA ESTELAR</div></div></div>
-    </div>
-
-    <!-- Purge Confirmation Modal -->
-    <div id="purge-confirm-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3>ALERTA: PROTOCOLO DE PURGADO</h3>
-            <p>Esta acción es irreversible. Todos los récords de misión, medallas y progresos serán permanentemente eliminados del registro. Para confirmar, escriba su nombre de cadete y presione CONFIRMAR.</p>
-            <input type="text" id="purge-confirm-input" class="modal-input" placeholder="Nombre de Cadete">
-            <div class="modal-options">
-                <div id="purge-cancel-btn" class="modal-btn">CANCELAR</div>
-                <div id="purge-confirm-btn" class="modal-btn confirm-btn" disabled>CONFIRMAR PURGADO</div>
+        <div id="bios-screen" class="screen active">
+            <div id="bios-background-grid"></div>
+            <div id="bios-content-container">
+                <div id="bios-title">[SYSTEM BOOT SEQUENCE]</div>
+                <div id="bios-log"></div>
+                <div id="bios-progress-bar-container"><div id="bios-progress-bar"></div></div>
             </div>
         </div>
+        <div id="cadet-select-screen" class="screen"><div class="zone top"><h2>SELECCIÓN DE CADETE</h2></div><div class="zone middle"><div id="cadet-select-list"></div></div><div class="zone bottom"><div id="start-registration-btn" class="btn-base" style="max-width: 600px;">INICIAR REGISTRO</div></div></div>
+        <div id="name-screen" class="screen"><div class="zone top"><h2>PROTOCOLO DE REGISTRO</h2></div><div class="zone middle"><div id="player-name-output"><span id="player-name-display"></span><span class="name-cursor"></span></div><div id="alpha-keyboard-container"></div></div><div class="zone bottom"></div></div>
+        <div id="title-screen" class="screen"><div class="zone middle"><h1 class="title-h1">ASTRO-CÁLCULO</h1><p class="title-p">[ PULSA PARA INICIAR ]</p></div></div>
+        <div id="level-select-screen" class="screen"><div class="zone top"><h2 id="level-select-header"></h2></div><div class="zone middle"><div class="level-options" id="level-options-container"></div></div><div class="zone bottom" style="display:flex; flex-direction:row; gap: 2vh; max-width: 900px; width:100%;"><div class="btn-base" id="view-cadet-file-btn">FICHA</div><div class="btn-base" id="switch-cadet-btn">CAMBIAR</div><div class="btn-base btn-shutdown" id="shutdown-btn">APAGAR</div></div></div>
+        <div id="game-screen" class="screen"><div class="zone top"><div id="game-header"><span id="game-mission-info"></span><span id="game-stats"></span></div></div><div class="zone middle"><div id="problem-display"></div><div id="hint-display"></div></div><div id="numpad" class="zone bottom"></div></div>
+        <div id="end-screen" class="screen"><div class="zone middle"><div><h2 id="end-title"></h2><h3 id="end-cadet-info"></h3><p id="end-score"></p><p id="end-unlock-message"></p><div class="end-options" style="flex-direction: column; gap: 2vh; display:flex; width:100%; align-items:center;"><div class="btn-base" id="return-to-map-btn" style="max-width:600px;">MAPA ESTELAR</div><div class="btn-base" id="repeat-mission-btn" style="max-width:600px;">REPETIR MISIÓN</div></div></div></div></div>
+        <div id="cadet-file-screen" class="screen"><div class="zone top"><h2>FICHA DE CADETE</h2></div><div class="zone middle" id="cadet-file-content" style="max-width:800px; width:100%; overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none;"></div><div class="zone bottom"><div class="btn-base" id="cadet-file-back-btn" style="max-width: 600px;">VOLVER AL MAPA ESTELAR</div></div></div>
+        
+        <div id="mrp-ruler" style="position:absolute; left:-9999px; top: -9999px; white-space:nowrap; font-family:var(--font);"></div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const gameState = { playerName: '', highestLevelUnlocked: 1, highScores: {}, medals: {}, singularityHighScore: 0, currentScreen: 'bios', currentLevel: null, score: 0, problemCount: 0, mistakesOnCurrentProblem: 0, mistakesTotal: 0, lives: 3, totalProblems: 10, currentProblem: null, isFullscreen: false, missionProblemPool: [] };
-            const screens = { bios: document.getElementById('bios-screen'), title: document.getElementById('title-screen'), name: document.getElementById('name-screen'), levelSelect: document.getElementById('level-select-screen'), game: document.getElementById('game-screen'), end: document.getElementById('end-screen'), cadetFile: document.getElementById('cadet-file-screen') };
-            const ui = { biosLog: document.getElementById('bios-log'), playerNameOutput: document.getElementById('player-name-output'), alphaKeyboard: document.getElementById('alpha-keyboard'), specialKeys: document.getElementById('special-keys'), levelSelectHeader: document.getElementById('level-select-header'), levelOptionsContainer: document.getElementById('level-options-container'), gameMissionInfo: document.getElementById('game-mission-info'), gameStats: document.getElementById('game-stats'), problemDisplay: document.getElementById('problem-display'), hintDisplay: document.getElementById('hint-display'), numpad: document.getElementById('numpad'), endTitle: document.getElementById('end-title'), endCadetInfo: document.getElementById('end-cadet-info'), endScore: document.getElementById('end-score'), viewCadetFileBtn: document.getElementById('view-cadet-file-btn'), cadetFileContent: document.getElementById('cadet-file-content'), cadetFileBackBtn: document.getElementById('cadet-file-back-btn'), returnToMapBtn: document.getElementById('return-to-map-btn'), repeatMissionBtn: document.getElementById('repeat-mission-btn'), purgeModal: document.getElementById('purge-confirm-modal'), purgeConfirmInput: document.getElementById('purge-confirm-input'), purgeConfirmBtn: document.getElementById('purge-confirm-btn'), purgeCancelBtn: document.getElementById('purge-cancel-btn') };
-            
-            // OPTIMIZED DIFFICULTY CURVE
-            const levels = [
-                { id: 1, name: "Mercurio", desc: "Sumas: x + y = ?", range: 10, template: "x+y=?" }, 
-                { id: 2, name: "Venus", desc: "Sumas: x + y = ?", range: 20, template: "x+y=?" }, 
-                { id: 3, name: "Tierra", desc: "Sumas: x + ? = y", range: 15, template: "x+?=y" }, 
-                { id: 4, name: "Marte", desc: "Sumas: ? + x = y", range: 25, template: "?+x=y" }, 
-                { id: 5, name: "C. Asteroides", desc: "Restas: x - y = ?", range: 30, template: "x-y=?" }, 
-                { id: 6, name: "Júpiter", desc: "Restas: x - ? = y", range: 40, template: "x-?=y" }, 
-                { id: 7, name: "Saturno", desc: "Sumas y Restas", range: 60, template: "mixed_simple" }, 
-                { id: 8, name: "Neptuno", desc: "Todas las plantillas", range: 100, template: "mixed_all" }, 
-                { id: 9, name: "C. de Kuiper", desc: "Prueba de Capitán", range: 120, template: "mixed_all", totalProblems: 15 },
-                { id: Infinity, name: "La Singularidad", desc: "Modo Supervivencia" }
-            ];
+    document.addEventListener('DOMContentLoaded', () => {
+        let appData = { activeCadet: null, profiles: {} };
+        let gameState = {};
+        const screens = { bios: document.getElementById('bios-screen'), cadetSelect: document.getElementById('cadet-select-screen'), name: document.getElementById('name-screen'), title: document.getElementById('title-screen'), levelSelect: document.getElementById('level-select-screen'), game: document.getElementById('game-screen'), end: document.getElementById('end-screen'), cadetFile: document.getElementById('cadet-file-screen') };
+        const ui = { appContainer: document.getElementById('app-container'), biosLog: document.getElementById('bios-log'), biosGrid: document.getElementById('bios-background-grid'), biosProgressBar: document.getElementById('bios-progress-bar'), cadetSelectList: document.getElementById('cadet-select-list'), startRegistrationBtn: document.getElementById('start-registration-btn'), playerNameDisplay: document.getElementById('player-name-display'), alphaKeyboardContainer: document.getElementById('alpha-keyboard-container'), switchCadetBtn: document.getElementById('switch-cadet-btn'), shutdownBtn: document.getElementById('shutdown-btn'), levelSelectHeader: document.getElementById('level-select-header'), levelOptionsContainer: document.getElementById('level-options-container'), gameMissionInfo: document.getElementById('game-mission-info'), gameStats: document.getElementById('game-stats'), problemDisplay: document.getElementById('problem-display'), hintDisplay: document.getElementById('hint-display'), numpad: document.getElementById('numpad'), endTitle: document.getElementById('end-title'), endCadetInfo: document.getElementById('end-cadet-info'), endScore: document.getElementById('end-score'), endUnlockMessage: document.getElementById('end-unlock-message'), viewCadetFileBtn: document.getElementById('view-cadet-file-btn'), cadetFileContent: document.getElementById('cadet-file-content'), cadetFileBackBtn: document.getElementById('cadet-file-back-btn'), returnToMapBtn: document.getElementById('return-to-map-btn'), repeatMissionBtn: document.getElementById('repeat-mission-btn'), mrpRuler: document.getElementById('mrp-ruler') };
+        const levels = [ { id: 1, name: "Mercurio", desc: "Sumas Simples", range: 10, templates: ["x+y=?"] }, { id: 2, name: "Venus", desc: "Sumas Medias", range: 30, templates: ["x+y=?"] }, { id: 3, name: "Tierra", desc: "Sumas con Incógnita", range: 25, templates: ["x+?=y", "?+x=y"] }, { id: 4, name: "Marte", desc: "Restas Simples", range: 40, templates: ["x-y=?"] }, { id: 5, name: "C. Asteroides", desc: "Restas con Incógnita", range: 50, templates: ["x-?=y"] }, { id: 6, name: "Júpiter", desc: "Restas Avanzadas", range: 80, templates: ["?-x=y"] }, { id: 7, name: "Saturno", desc: "Mixto Simple (Suma/Resta)", range: 60, templates: ["x+y=?", "x-y=?"] }, { id: 8, name: "Urano", desc: "Mixto Complejo (Suma/Resta)", range: 100, templates: ["x+?=y", "?+x=y", "x-?=y", "?-x=y"] }, { id: 9, name: "Neptuno", desc: "Prueba de Capitán", range: 120, templates: ["x+?=y", "?+x=y", "x-?=y", "?-x=y"], totalProblems: 15 }, { id: 10, name: "Cinturón de Kuiper", desc: "Multiplicaciones: x * y = ?", range: 9, templates: ["x*y=?"] }, { id: 11, name: "Nube de Oort", desc: "Multiplicaciones con Incógnita", range: 12, templates: ["x*?=z", "?*y=z"] }, { id: 12, name: "Némesis", desc: "Prueba de Comandante", range: 120, templates: ["x+?=y", "x-?=y", "?-x=y", "x*y=?"], totalProblems: 20 }, { id: Infinity, name: "La Singularidad", desc: "Modo Supervivencia" } ];
+        
+        const createNewProfile = (playerName) => ({ playerName, highestLevelUnlocked: 1, highScores: {}, medals: {}, singularityHighScore: 0 });
+        const createGameState = () => ({ isAcceptingInput: true, optimalFontSize: '7vw', currentScreen: 'bios', currentLevel: null, score: 0, problemCount: 0, mistakesTotal: 0, lives: 3, totalProblems: 10, currentProblem: null, problemHistory: [], isShiftActive: true });
+        let biosInterval = null;
 
-            function saveProgress() { try { localStorage.setItem('astroCalculoProgress', JSON.stringify({ playerName: gameState.playerName, highestLevelUnlocked: gameState.highestLevelUnlocked, highScores: gameState.highScores, medals: gameState.medals, singularityHighScore: gameState.singularityHighScore })); } catch (e) { console.error("Storage Error"); } }
-            function loadProgress() { try { const data = JSON.parse(localStorage.getItem('astroCalculoProgress')); if (data) { Object.assign(gameState, data); if(!gameState.singularityHighScore) gameState.singularityHighScore = 0;} } catch (e) { console.error("Storage Error"); } }
-            function showScreen(screenId) { for (const key in screens) screens[key].classList.remove('active'); screens[screenId].classList.add('active'); gameState.currentScreen = screenId; }
-            function activateFullscreen() { if (gameState.isFullscreen || document.fullscreenElement) return; const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen(); else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); gameState.isFullscreen = true; }
-            
-            function init() { loadProgress(); runBiosSequence(); setupEventListeners(); }
-            function getCadetRank() { const lvl = gameState.highestLevelUnlocked; if (lvl > 9) return "Capitán de Flota"; if (lvl >= 7) return "Comandante Estelar"; if (lvl >= 5) return "Teniente de Navío"; if (lvl >= 3) return "Oficial de Vuelo"; return "Cadete"; }
-            function runBiosSequence() { /* ... unchanged ... */ } // Function remains the same as previous version.
-            
-            function startGame() { 
-                gameState.score = 0; gameState.problemCount = 0; gameState.mistakesTotal = 0; 
-                gameState.totalProblems = gameState.currentLevel.totalProblems || 10; 
-                if(gameState.currentLevel.id !== Infinity) { generateMissionProblemPool(); }
-                buildNumpad(); 
-                if(gameState.currentLevel.id === Infinity) { gameState.lives = 3; } 
-                nextProblem(); 
-                showScreen('game'); 
-            }
-            
-            // GSM - Generador de Secuencias de Misión
-            function generateMissionProblemPool() {
-                const level = gameState.currentLevel;
-                const pool = [];
-                const uniqueCheck = new Set();
-                const requiredProblems = gameState.totalProblems;
+        function saveAppData() { try { localStorage.setItem('astroCalculoData_DEFINITIVE', JSON.stringify(appData)); } catch (e) { console.error("Storage Error"); } }
+        function loadAppData() { try { const data = JSON.parse(localStorage.getItem('astroCalculoData_DEFINITIVE')); if (data) appData = data; } catch (e) { console.error("Storage Error"); } }
+        
+        function showScreen(screenId, callback) {
+            Object.values(screens).forEach(s => s.classList.remove('active'));
+            screens[screenId].classList.add('active');
+            if (gameState) gameState.currentScreen = screenId;
+            if (callback) { requestAnimationFrame(() => { requestAnimationFrame(() => { callback(); }); }); }
+        }
+        
+        function activateFullscreen() { if (document.fullscreenElement) return; const el = document.documentElement; if (el.requestFullscreen) el.requestFullscreen(); }
+        function init() { loadAppData(); document.body.addEventListener('click', activateFullscreen, { once: true }); runBiosSequence(); }
+        
+        function runBiosSequence() { gameState = createGameState(); const glyphs = '0123456789ABCDEF<>+/-=[]*'; const gridCells = Math.floor(window.innerWidth / 20) * Math.floor(window.innerHeight / 15); ui.biosGrid.innerHTML = Array.from({ length: gridCells }, () => `<span>${glyphs[Math.floor(Math.random() * glyphs.length)]}</span>`).join(''); if (biosInterval) clearInterval(biosInterval); biosInterval = setInterval(() => { const spans = ui.biosGrid.children; if (!spans.length) return; for (let i = 0; i < 5; i++) { const randomIndex = Math.floor(Math.random() * spans.length); if (spans[randomIndex]) spans[randomIndex].textContent = glyphs[Math.floor(Math.random() * glyphs.length)]; } }, 50); let logs; if (Object.keys(appData.profiles).length > 0 && appData.activeCadet) { logs = [ `> RESUMING SESSION FOR CADET: ${appData.activeCadet}`, `> RANK: ${getCadetRank().toUpperCase()}`, '> ALL SYSTEMS READY.' ]; } else { logs = [ '> SYSTEM CHECK...', '> NO ACTIVE SESSION. AWAITING CADET INPUT...', '> ALL SYSTEMS READY.' ]; } const totalChars = logs.join("").length; let typedChars = 0; ui.biosLog.innerHTML = ''; let lineIndex = 0; let charIndex = 0; function typeChar() { if (lineIndex >= logs.length) { clearInterval(biosInterval); setTimeout(() => routeToNextScreen(), 1000); return; } const currentLine = logs[lineIndex]; if (charIndex === 0) ui.biosLog.innerHTML += '<div></div>'; const lineDiv = ui.biosLog.lastChild; if (charIndex < currentLine.length) { lineDiv.textContent += currentLine[charIndex]; charIndex++; typedChars++; ui.biosProgressBar.style.width = `${(typedChars / totalChars) * 100}%`; } else { lineIndex++; charIndex = 0; } setTimeout(typeChar, 30); } typeChar(); }
+        function getCadetRank() { const lvl = appData.profiles[appData.activeCadet]?.highestLevelUnlocked || 1; if (lvl >= 12) return "Maestro de Flota"; if (lvl >= 10) return "Navegante Experto"; if (lvl >= 9) return "Capitán de Flota"; if (lvl >= 7) return "Comandante"; if (lvl >= 5) return "Teniente"; if (lvl >= 3) return "Oficial"; return "Cadete"; }
+        function routeToNextScreen() { if (appData.activeCadet && appData.profiles[appData.activeCadet]) { showScreen('title'); } else { setupCadetSelectScreen(); showScreen('cadetSelect'); } }
+        function setupCadetSelectScreen() { ui.cadetSelectList.innerHTML = ''; const profiles = Object.keys(appData.profiles); if (profiles.length > 0) { profiles.forEach(name => { const profileBtn = document.createElement('div'); profileBtn.className = 'btn-base'; profileBtn.textContent = name; profileBtn.dataset.name = name; ui.cadetSelectList.appendChild(profileBtn); }); } else { ui.cadetSelectList.innerHTML = '<p>No se han encontrado perfiles. Inicia el registro para comenzar.</p>'; } }
+        ui.cadetSelectList.addEventListener('click', (e) => { const target = e.target.closest('.btn-base'); if(target) { appData.activeCadet = target.dataset.name; saveAppData(); showScreen('title'); } });
+        ui.startRegistrationBtn.addEventListener('click', () => { buildAlphaKeyboard(); ui.playerNameDisplay.textContent = ''; showScreen('name'); });
+        function buildAlphaKeyboard() { const keys = { row1: "1234567890".split(''), row2: "QWERTYUIOP".split(''), row3: "ASDFGHJKL".split(''), row4: "ZXCVBNM".split(''), }; const createKey = (key, specialClass = '') => `<div class="keyboard-key ${specialClass}" data-key="${key}">${key}</div>`; const createRow = (content) => `<div class="keyboard-row">${content}</div>`; let html = createRow(keys.row1.map(k => createKey(k)).join('')); html += createRow(keys.row2.map(k => createKey(k)).join('')); html += createRow(createKey('', 'key-special-spacer') + keys.row3.map(k => createKey(k)).join('') + createKey('', 'key-special-spacer')); html += createRow(createKey('SHIFT', 'key-special key-shift') + keys.row4.map(k => createKey(k)).join('') + createKey('⌫', 'key-special')); html += createRow(createKey('REGISTRAR', 'key-enter')); ui.alphaKeyboardContainer.innerHTML = html.replace('data-key="⌫"', 'data-key="BACKSPACE"').replace('data-key="REGISTRAR"', 'data-key="ENTER"'); ui.alphaKeyboardContainer.querySelector('.key-shift').classList.toggle('active', gameState.isShiftActive); document.querySelectorAll('.key-special-spacer').forEach(el => { el.style.opacity = 0; el.style.pointerEvents = 'none'; }); }
+        function handleNameInput(key) { let name = ui.playerNameDisplay.textContent; if (key === 'SHIFT') { gameState.isShiftActive = !gameState.isShiftActive; ui.alphaKeyboardContainer.querySelector('.key-shift').classList.toggle('active', gameState.isShiftActive); return; } if (key === 'BACKSPACE') { name = name.slice(0, -1); } else if (key === 'ENTER') { const newName = name.trim().toUpperCase(); if (newName && !appData.profiles[newName]) { appData.profiles[newName] = createNewProfile(newName); appData.activeCadet = newName; saveAppData(); setupLevelSelect(); showScreen('levelSelect'); } return; } else if (name.length < 15) { name += gameState.isShiftActive ? key.toUpperCase() : key.toLowerCase(); } ui.playerNameDisplay.textContent = name; }
+        ui.alphaKeyboardContainer.addEventListener('click', e => { const target = e.target.closest('.keyboard-key'); if (target) handleNameInput(target.dataset.key); });
+        screens.title.addEventListener('click', () => { setupLevelSelect(); showScreen('levelSelect'); });
+        ui.switchCadetBtn.addEventListener('click', () => { appData.activeCadet = null; saveAppData(); routeToNextScreen(); });
+        ui.shutdownBtn.addEventListener('click', () => { if(biosInterval) clearInterval(biosInterval); ui.appContainer.classList.add('shutting-down'); setTimeout(() => { window.location.href = 'about:blank'; }, 1500); });
+        function setupLevelSelect() { const cadet = appData.profiles[appData.activeCadet]; ui.levelSelectHeader.textContent = `MAPA ESTELAR | ${getCadetRank()}: ${cadet.playerName}`; ui.levelOptionsContainer.innerHTML = ''; const newlyUnlockedId = sessionStorage.getItem('newlyUnlocked'); levels.filter(l => l.id !== Infinity).forEach(level => { const btn = document.createElement('div'); btn.className = 'level-btn'; btn.dataset.levelId = level.id; let stateClass = 'locked'; if (level.id < cadet.highestLevelUnlocked) stateClass = 'completed'; if (level.id === cadet.highestLevelUnlocked) stateClass = 'active'; btn.classList.add(stateClass); let headerHTML = `<span>${level.name}</span>`; if (stateClass === 'completed' && cadet.highScores[level.id] !== undefined) { headerHTML += `<span class="level-highscore">RÉCORD: ${cadet.highScores[level.id]}</span>`; } btn.innerHTML = `<div class="level-btn-header">${headerHTML}</div><div class="level-btn-details"><p>${level.desc}</p></div>`; ui.levelOptionsContainer.appendChild(btn); }); if (cadet.highestLevelUnlocked > 12) { const btn = document.createElement('div'); btn.className = 'level-btn singularity-btn'; btn.dataset.levelId = Infinity; btn.innerHTML = `<strong>${levels.find(l=>l.id===Infinity).name}</strong><small>${levels.find(l=>l.id===Infinity).desc}</small>`; if (cadet.singularityHighScore > 0) btn.innerHTML += `<span class="level-highscore">RÉCORD: ${cadet.singularityHighScore}</span>`; ui.levelOptionsContainer.appendChild(btn); } if(newlyUnlockedId) sessionStorage.removeItem('newlyUnlocked'); };
+        ui.levelOptionsContainer.addEventListener('click', e => { const target = e.target.closest('.level-btn'); if (!target || target.classList.contains('locked')) return; if(target.classList.contains('completed')) { const isExpanded = target.classList.contains('expanded'); ui.levelOptionsContainer.querySelector('.level-btn.expanded')?.classList.remove('expanded'); if (!isExpanded) target.classList.add('expanded'); } else if (target.classList.contains('active') || target.classList.contains('singularity-btn')) { gameState.currentLevel = levels.find(l => l.id == target.dataset.levelId); startGame(); } });
+        
+        function calculateOptimalFontSize(level, isVertical) {
+            const container = ui.problemDisplay;
+            const ruler = ui.mrpRuler;
+            const range = level.range;
+            const maxNum = String(range * 12).length > String(range).length + 2 ? range*12 : range + range;
+            let worstCaseString = isVertical ? `${maxNum}` : `${maxNum} × ${maxNum} = ${maxNum * maxNum}`;
+            ruler.textContent = worstCaseString;
+            ruler.style.fontSize = '100px'; 
+            let currentSize = 100;
+            const containerWidth = container.clientWidth * 0.95;
+            let attempts = 0;
+            while (ruler.scrollWidth > containerWidth && attempts < 100) { currentSize--; ruler.style.fontSize = currentSize + 'px'; attempts++; }
+            gameState.optimalFontSize = currentSize + 'px';
+        }
+        
+        function startGame() { gameState.score = 0; gameState.problemCount = 0; gameState.mistakesTotal = 0; gameState.totalProblems = gameState.currentLevel.totalProblems || 10; gameState.problemHistory = []; if (gameState.currentLevel.id === Infinity) gameState.lives = 3; buildNumpad(); showScreen('game', () => { nextProblem(true); }); };
+        function buildNumpad() { ui.numpad.innerHTML = `<div class="keyboard-key" data-key="7">7</div><div class="keyboard-key" data-key="8">8</div><div class="keyboard-key" data-key="9">9</div><div class="keyboard-key" data-key="4">4</div><div class="keyboard-key" data-key="5">5</div><div class="keyboard-key" data-key="6">6</div><div class="keyboard-key" data-key="1">1</div><div class="keyboard-key" data-key="2">2</div><div class="keyboard-key" data-key="3">3</div><div class="keyboard-key" data-key="CLEAR">⌫</div><div class="keyboard-key" data-key="0">0</div><div class="keyboard-key key-launch" data-key="LAUNCH">↵</div>`; };
+        function handleGameInput(key) { if (!gameState.isAcceptingInput) return; const answerBox = ui.problemDisplay.querySelector('#answer-box'); if (!answerBox || answerBox.classList.contains('correct') || answerBox.classList.contains('incorrect')) return; const userInputDisplay = answerBox.querySelector('#user-input-display'); const placeholderDisplay = answerBox.querySelector('#placeholder-display'); let currentAnswer = userInputDisplay.textContent; if (key === 'LAUNCH') { if (currentAnswer) checkAnswer(currentAnswer); }  else if (key === 'CLEAR') { userInputDisplay.textContent = ''; placeholderDisplay.style.visibility = 'visible'; } else if (currentAnswer.length < String(gameState.currentProblem.answer).length) { placeholderDisplay.style.visibility = 'hidden'; userInputDisplay.textContent += key; } };
+        ui.numpad.addEventListener('click', e => { const target = e.target.closest('.keyboard-key'); if (target) handleGameInput(target.dataset.key); });
+        document.addEventListener('keydown', e => { if (gameState.currentScreen !== 'game') return; e.preventDefault(); let key = e.key, keyId = ''; if (key >= '0' && key <= '9') keyId = key; else if (key === 'Enter') keyId = 'LAUNCH'; else if (key === 'Backspace') keyId = 'CLEAR'; if(keyId) { handleGameInput(keyId); const keyEl = ui.numpad.querySelector(`[data-key="${keyId}"]`); if(keyEl) { keyEl.classList.add('key-active-feedback'); setTimeout(() => keyEl.classList.remove('key-active-feedback'), 150); } } });
+        
+        function displayProblem(calibrate = false) {
+            const p = gameState.currentProblem;
+            const isVertical = window.innerHeight > window.innerWidth && ['x+y=?', 'x-y=?', 'x*y=?'].includes(p.template);
+            if (calibrate) { calculateOptimalFontSize(gameState.currentLevel, isVertical); }
+            ui.problemDisplay.style.fontSize = gameState.optimalFontSize;
 
-                let attempts = 0;
-                while(pool.length < requiredProblems && attempts < 500) {
-                    const p = generateProblem(level, true); // Generate problem without setting state
-                    const problemKey = `${p.a}-${p.operator}-${p.b}`;
-                    if(!uniqueCheck.has(problemKey)) {
-                        uniqueCheck.add(problemKey);
-                        pool.push(p);
-                    }
-                    attempts++;
+            let html = '';
+            const answerBoxHTML = `<div id="answer-box"><span id="placeholder-display"></span><span id="user-input-display"></span></div>`;
+            if (isVertical) {
+                ui.problemDisplay.classList.add('problem-vertical');
+                html = `<span class="op1">${p.n1}</span><span class="operator">${p.operator}</span><span class="op2">${p.n2}</span><div class="line"></div>${answerBoxHTML}`;
+            } else {
+                ui.problemDisplay.classList.remove('problem-vertical');
+                switch(p.template) {
+                    case "x*y=?": html = `<span>${p.n1}</span><span>×</span><span>${p.n2}</span><span>=</span>${answerBoxHTML}`; break; case "?*y=z": html = `${answerBoxHTML}<span>×</span><span>${p.n2}</span><span>=</span><span>${p.result}</span>`; break; case "x*?=z": html = `<span>${p.n1}</span><span>×</span>${answerBoxHTML}<span>=</span><span>${p.result}</span>`; break; case "x+y=?": html = `<span>${p.n1}</span><span>+</span><span>${p.n2}</span><span>=</span>${answerBoxHTML}`; break; case "x-y=?": html = `<span>${p.n1}</span><span>-</span><span>${p.n2}</span><span>=</span>${answerBoxHTML}`; break; case "?+x=y": html = `${answerBoxHTML}<span>+</span><span>${p.n1}</span><span>=</span><span>${p.result}</span>`; break; case "x+?=y": html = `<span>${p.n1}</span><span>+</span>${answerBoxHTML}<span>=</span><span>${p.result}</span>`; break; case "x-?=y": html = `<span>${p.n1}</span><span>-</span>${answerBoxHTML}<span>=</span><span>${p.result}</span>`; break; case "?-x=y": html = `${answerBoxHTML}<span>-</span><span>${p.n1}</span><span>=</span><span>${p.result}</span>`; break;
                 }
-
-                // Handle edge case where not enough unique problems exist
-                while (pool.length < requiredProblems) {
-                    pool.push(generateProblem(level, true));
-                }
-
-                shuffleArray(pool);
-                gameState.missionProblemPool = pool;
             }
-            
-            function shuffleArray(array) { // Fisher-Yates Shuffle
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-            }
+            ui.problemDisplay.innerHTML = html;
+            renderAnswerPlaceholder();
+        };
+        
+        function renderAnswerPlaceholder() { const placeholder = ui.problemDisplay.querySelector('#placeholder-display'); const userInput = ui.problemDisplay.querySelector('#user-input-display'); if (placeholder) { placeholder.textContent = '0'.repeat(String(gameState.currentProblem.answer).length); placeholder.style.visibility = 'visible'; } if (userInput) userInput.textContent = ''; }
+        function checkAnswer(playerAnswer) { gameState.isAcceptingInput = false; const isCorrect = parseInt(playerAnswer) === gameState.currentProblem.answer; const answerBox = ui.problemDisplay.querySelector('#answer-box'); if (isCorrect) { answerBox.classList.add('correct'); if (gameState.currentLevel.id !== Infinity) gameState.score += 10; else gameState.score++; updateGameHeader(true); setTimeout(() => { nextProblem(); }, 600); } else { gameState.mistakesTotal++; gameState.mistakesOnCurrentProblem++; answerBox.classList.add('incorrect'); if (gameState.currentLevel.id === Infinity) { gameState.lives--; updateGameHeader(); if (gameState.lives <= 0) { setTimeout(() => endGame(true), 600); return; } } if (gameState.mistakesOnCurrentProblem === 2) showHint(); setTimeout(() => { answerBox.classList.remove('incorrect'); answerBox.querySelector('#user-input-display').textContent = ''; answerBox.querySelector('#placeholder-display').style.visibility = 'visible'; gameState.isAcceptingInput = true; }, 600); } };
+        function nextProblem(isFirstProblem = false) { if (!isFirstProblem && gameState.currentLevel.id !== Infinity && gameState.problemCount >= gameState.totalProblems) { endGame(false); return; } gameState.problemCount++; gameState.mistakesTotal = 0; ui.hintDisplay.textContent = ''; generateProblem(); displayProblem(isFirstProblem); updateGameHeader(); gameState.isAcceptingInput = true; };
+        function updateGameHeader(scorePulse = false) { ui.gameMissionInfo.textContent = `MISIÓN: ${gameState.currentLevel.name}`; if (gameState.currentLevel.id === Infinity) { ui.gameStats.textContent = `SISTEMAS: ${'● '.repeat(gameState.lives)}${'○ '.repeat(Math.max(0, 3 - gameState.lives))} | RESUELTOS: ${gameState.score}`; } else { ui.gameStats.textContent = `CÁLCULO ${gameState.problemCount}/${gameState.totalProblems} | PUNTOS: ${gameState.score}`; } if(scorePulse) { const statsEl = document.getElementById('game-stats'); if (statsEl) { statsEl.classList.add('score-update'); setTimeout(() => statsEl.classList.remove('score-update'), 300); } } };
+        function generateProblem() { let p; do { p = createProblemInstance(); } while (gameState.problemHistory.includes(p.signature)); gameState.problemHistory.push(p.signature); if (gameState.problemHistory.length > 7) gameState.problemHistory.shift(); gameState.currentProblem = p; };
+        function createProblemInstance() { const level = gameState.currentLevel; const progress = (gameState.problemCount / gameState.totalProblems); let effectiveRange; if (level.id === Infinity) { effectiveRange = 100 + Math.floor(gameState.score / 5) * 15; } else { effectiveRange = Math.max(10, Math.floor(level.range * (0.4 + progress * 0.6))); } const templates = level.id === Infinity ? levels.flatMap(l => l.templates || []) : level.templates; const template = templates[Math.floor(Math.random() * templates.length)]; let n1, n2, result, answer, operator, signature; switch (template) { case "x*y=?": operator = '×'; n1 = 2 + Math.floor(Math.random() * (Math.min(effectiveRange, level.range) - 1)); n2 = 2 + Math.floor(Math.random() * 8); result = n1 * n2; answer = result; break; case "?*y=z": case "x*?=z": operator = '×'; n2 = 2 + Math.floor(Math.random() * (Math.min(effectiveRange, level.range) - 1)); answer = 2 + Math.floor(Math.random() * 8); result = n2 * answer; n1 = template === "?*y=z" ? answer : n2; n2 = template === "?*y=z" ? n2 : answer; break; case "x+y=?": operator = '+'; n1 = 1 + Math.floor(Math.random() * (effectiveRange - 1)); n2 = 1 + Math.floor(Math.random() * (effectiveRange - 1)); result = n1 + n2; answer = result; break; case "x-y=?": operator = '-'; n1 = 2 + Math.floor(Math.random() * (effectiveRange - 2)); n2 = 1 + Math.floor(Math.random() * (n1 - 1)); result = n1 - n2; answer = result; break; case "x+?=y": case "?+x=y": operator = '+'; result = 2 + Math.floor(Math.random() * (effectiveRange - 2)); n1 = 1 + Math.floor(Math.random() * (result - 1)); n2 = result - n1; answer = n2; break; case "x-?=y": operator = '-'; n1 = 2 + Math.floor(Math.random() * (effectiveRange - 2)); result = 1 + Math.floor(Math.random() * (n1 - 1)); n2 = n1 - result; answer = n2; break; case "?-x=y": operator = '-'; n1 = 1 + Math.floor(Math.random() * (effectiveRange / 2)); result = 1 + Math.floor(Math.random() * (effectiveRange / 2)); n2 = n1 + result; answer = n2; break; } signature = `${n1}${operator}${n2}`; return { n1, n2, result, answer, operator, template, signature }; };
+        function showHint() { const p = gameState.currentProblem; let hint = ''; switch (p.template) { case "x*?=z": hint = `Intenta: ${p.result} ÷ ${p.n1}`; break; case "?*y=z": hint = `Intenta: ${p.result} ÷ ${p.n2}`; break; case "?+x=y": case "x+?=y": hint = `Intenta: ${p.result} - ${p.n1}`; break; case "x-?=y": hint = `Intenta: ${p.n1} - ${p.result}`; break; case "?-x=y": hint = `Intenta: ${p.result} + ${p.n1}`; break; } if (hint) ui.hintDisplay.textContent = `[Sugerencia: ${hint}]`; };
+        function endGame(isInfinite) { gameState.isAcceptingInput = false; ui.endUnlockMessage.textContent = ''; const cadet = appData.profiles[appData.activeCadet]; if (isInfinite) { if (gameState.score > (cadet.singularityHighScore || 0)) cadet.singularityHighScore = gameState.score; ui.endTitle.textContent = "TRANSMISIÓN FINALIZADA"; ui.endScore.textContent = `CÁLCULOS RESUELTOS: ${gameState.score}`; } else { const levelId = gameState.currentLevel.id; if (gameState.score > (cadet.highScores[levelId] || 0)) cadet.highScores[levelId] = gameState.score; if (!cadet.medals[levelId]) cadet.medals[levelId] = {}; const total = gameState.totalProblems * 10; const scoreMedal = gameState.score >= total * 0.9 ? 'gold' : gameState.score >= total * 0.7 ? 'silver' : gameState.score >= total * 0.5 ? 'bronze' : null; if (scoreMedal) { const order = ['bronze', 'silver', 'gold']; if (!cadet.medals[levelId].scoreMedal || order.indexOf(scoreMedal) > order.indexOf(cadet.medals[levelId].scoreMedal)) cadet.medals[levelId].scoreMedal = scoreMedal; } if (gameState.mistakesTotal === 0 && gameState.score > 0) cadet.medals[levelId].perfection = true; if (gameState.score >= total * 0.7 && levelId === cadet.highestLevelUnlocked && cadet.highestLevelUnlocked < 12) { const newLevel = levels.find(l => l.id === cadet.highestLevelUnlocked + 1); if (newLevel) { ui.endUnlockMessage.textContent = `ACCESO AUTORIZADO AL SECTOR: ${newLevel.name.toUpperCase()}`; sessionStorage.setItem('newlyUnlocked', newLevel.id); } cadet.highestLevelUnlocked++; } ui.endTitle.textContent = "¡MISIÓN COMPLETADA!"; ui.endScore.textContent = `PUNTAJE FINAL: ${gameState.score}`; } saveAppData(); showScreen('end'); ui.endCadetInfo.textContent = `CADETE: ${cadet.playerName}`; };
+        ui.returnToMapBtn.addEventListener('click', () => { setupLevelSelect(); showScreen('levelSelect'); });
+        ui.repeatMissionBtn.addEventListener('click', () => startGame());
+        ui.viewCadetFileBtn.addEventListener('click', () => { setupCadetFileScreen(); showScreen('cadetFile'); });
+        ui.cadetFileBackBtn.addEventListener('click', () => { setupLevelSelect(); showScreen('levelSelect'); });
+        function setupCadetFileScreen() { const cadet = appData.profiles[appData.activeCadet]; let recordsHtml = ''; levels.filter(l => l.id !== Infinity).forEach(level => { const record = cadet.highScores[level.id]; const medals = cadet.medals[level.id] || {}; if(record !== undefined || medals.scoreMedal || medals.perfection) { recordsHtml += `<div style="display: flex; justify-content: space-between; width:100%; align-items:center;"><span><strong>${level.name}:</strong> ${record === undefined ? '---' : record + ' pts'}</span><span style="display:flex; gap:10px; align-items:center;">${medals.scoreMedal ? `<span style="width: 1.8em; height: 2.2em; display:inline-block; background-color:var(--${medals.scoreMedal}-color); clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)"></span>` : ''}${medals.perfection ? `<div style="width: 2em; height: 2em; position:relative;"><div style="position:absolute; top:0;left:50%;width:10%;height:100%;background-color:var(--gold-color);transform:translateX(-50%);"></div><div style="position:absolute; top:50%;left:0;width:100%;height:10%;background-color:var(--gold-color);transform:translateY(-50%);"></div></div>` : ''}</span></div>`; } }); if(!recordsHtml) recordsHtml = 'Aún no hay récords de misión.'; let singularityRecord = ``; if(cadet.singularityHighScore > 0) singularityRecord = `<div style="margin-bottom:3vh;"><h3>RÉCORD DE LA SINGULARIDAD</h3><div>${cadet.singularityHighScore} cálculos resueltos</div></div>`; ui.cadetFileContent.innerHTML = `<div style="margin-bottom:3vh;"><h3>IDENTIFICACIÓN</h3>CADETE: ${cadet.playerName}<br>RANGO: <span style="color:var(--success-color); filter: brightness(1.5);">${getCadetRank()}</span></div>${singularityRecord}<div><h3>RÉCORDS Y HONORES DE MISIÓN</h3><div style="display:flex;flex-direction:column;gap:10px;">${recordsHtml}</div></div>`; };
 
-            function generateProblem(level, isForPool = false) {
-                let a, b, c, answer, operator, template = level.template, range = level.range; 
-                if (level.id === Infinity && !isForPool) { range = 120 + Math.floor(gameState.score / 10) * 10; template = 'mixed_all'; }
-                if (template === 'mixed_simple') { template = Math.random() < 0.5 ? 'x+y=?' : 'x-y=?'; } 
-                else if (template === 'mixed_all') { const all = ["x+y=?", "?+x=y", "x+?=y", "x-y=?", "x-?=y", "?-x=y"]; template = all[Math.floor(Math.random() * all.length)]; } 
-                operator = template.includes('+') ? '+' : '-';
-                // Ensure a > b for subtraction, and reasonable numbers
-                b = 1 + Math.floor(Math.random() * (range - 1));
-                a = b + Math.floor(Math.random() * (range - b));
-                if (operator === '+') c = a + b; else c = a - b;
-                
-                let p = { a, b, c, operator, template };
-                switch(template) { 
-                    case "x+y=?": p.answer = p.c; break; 
-                    case "?+x=y": [p.a,p.b,p.c] = [b,a,a+b]; p.answer = b; break;
-                    case "x+?=y": [p.a,p.b,p.c] = [a,b,a+b]; p.answer = b; break; 
-                    case "x-y=?": p.answer = p.c; break; 
-                    case "?-x=y": [p.a,p.b,p.c] = [a,b,a-b]; p.answer = a; break;
-                    case "x-?=y": p.answer = b; break; 
-                }
-                p.answerDigitCount = String(p.answer).length;
-                return p;
-            }
-
-            function nextProblem() {
-                if (gameState.currentLevel.id !== Infinity && gameState.problemCount >= gameState.totalProblems) { endGame(false); return; }
-                gameState.problemCount++;
-                gameState.mistakesOnCurrentProblem = 0;
-                ui.hintDisplay.textContent = '';
-                
-                if(gameState.currentLevel.id !== Infinity) {
-                    gameState.currentProblem = gameState.missionProblemPool[gameState.problemCount - 1];
-                } else {
-                    gameState.currentProblem = generateProblem(gameState.currentLevel);
-                }
-
-                displayProblem();
-                updateGameHeader();
-            }
-            
-            function setupCadetFileScreen() {
-                const rank = getCadetRank(); let recordsHtml = '';
-                // ... (Medal display logic is now inside this function, no change to it)
-                levels.filter(l => l.id !== Infinity).forEach(level => { const record = gameState.highScores[level.id]; const medals = gameState.medals[level.id] || {}; if(record !== undefined || medals.scoreMedal || medals.perfection) { recordsHtml += `<div class="record-item">...</div>`; } }); if(!recordsHtml) recordsHtml = 'Aún no hay récords de misión.';
-                let singularityRecord = ``; if(gameState.singularityHighScore > 0) singularityRecord = `<div class="cadet-info-section"><h3>RÉCORD DE LA SINGULARIDAD</h3><div>${gameState.singularityHighScore} cálculos resueltos</div></div>`;
-                
-                const purgeSection = `<div class="cadet-info-section"><h3>PROTOCOLO DE EMERGENCIA</h3><div id="purge-init-btn" class="modal-btn confirm-btn" style="max-width: 300px;">PURGAR FICHA DE CADETE</div></div>`;
-
-                ui.cadetFileContent.innerHTML = `<div class="cadet-info-section"><h3>IDENTIFICACIÓN</h3>CADETE: ${gameState.playerName}<br>RANGO: <span style="color:var(--success-color)">${rank}</span></div>${singularityRecord}<div class="cadet-info-section"><h3>RÉCORDS Y HONORES DE MISIÓN</h3><div class="records-grid">${recordsHtml}</div></div>${purgeSection}`;
-                
-                // Add listener for the new button
-                document.getElementById('purge-init-btn').addEventListener('click', () => {
-                    ui.purgeModal.classList.remove('hidden');
-                    ui.purgeConfirmInput.value = '';
-                    ui.purgeConfirmBtn.disabled = true;
-                });
-            }
-
-            function setupEventListeners() {
-                // PPF - Protocolo de Purgado de Ficha Listeners
-                ui.purgeCancelBtn.addEventListener('click', () => ui.purgeModal.classList.add('hidden'));
-                ui.purgeConfirmInput.addEventListener('input', () => {
-                    ui.purgeConfirmBtn.disabled = ui.purgeConfirmInput.value !== gameState.playerName;
-                });
-                ui.purgeConfirmBtn.addEventListener('click', () => {
-                    if (ui.purgeConfirmBtn.disabled) return;
-                    localStorage.removeItem('astroCalculoProgress');
-                    location.reload();
-                });
-                // ... All other event listeners from previous versions
-                 screens.title.addEventListener('click', () => { activateFullscreen(); if (gameState.playerName) { setupLevelSelect(); showScreen('levelSelect'); } else { buildAlphaKeyboard(); showScreen('name'); } });
-                 ui.alphaKeyboard.addEventListener('click', e => { const target = e.target.closest('.keyboard-key'); if(target) handleNameInput(target.dataset.key); });
-                 ui.specialKeys.addEventListener('click', e => { const target = e.target.closest('.keyboard-key'); if(target) handleNameInput(target.dataset.key); });
-                 ui.levelOptionsContainer.addEventListener('click', e => { const target = e.target.closest('.level-btn:not(.locked)'); if (!target) return; gameState.currentLevel = levels.find(l => l.id == target.dataset.levelId); startGame(); });
-                 ui.viewCadetFileBtn.addEventListener('click', () => { setupCadetFileScreen(); showScreen('cadetFile'); });
-                 ui.cadetFileBackBtn.addEventListener('click', () => { setupLevelSelect(); showScreen('levelSelect'); });
-                 ui.numpad.addEventListener('click', e => { const target = e.target.closest('.keyboard-key'); if(target) handleGameInput(target.dataset.key); });
-                 ui.returnToMapBtn.addEventListener('click', () => { setupLevelSelect(); showScreen('levelSelect'); });
-                 ui.repeatMissionBtn.addEventListener('click', () => startGame());
-            }
-
-            // Dummy functions from prev version to be copy-pasted for brevity
-            function runBiosSequence() { const logs = ['...']; let i=0; const interval = setInterval(()=>{ if (i < logs.length) { ui.biosLog.innerHTML += `<div>${logs[i]}</div>`; i++; } else { clearInterval(interval); setTimeout(()=>showScreen('title'), 1000); }}, 500); }
-            function buildAlphaKeyboard() { /* Unchanged */ }
-            function handleNameInput(key) { /* Unchanged */ }
-            function setupLevelSelect() { /* Unchanged */ }
-            function buildNumpad() { /* Unchanged */ }
-            function handleGameInput(key) { /* Unchanged */ }
-            function updateGameHeader() { /* Unchanged */ }
-            function displayProblem() { /* Unchanged */ }
-            function checkAnswer(playerAnswer) { /* Unchanged */ }
-            function showHint() { /* Unchanged */ }
-            function endGame(isInfinite) { /* Unchanged */ }
-
-
-            // Let's re-add the full functions to avoid breaking the code.
-            runBiosSequence = function() {
-                let logs = [];
-                if (gameState.playerName) {
-                    logs = [ 'SYSTEM CHECK...', '> CADET PROFILE FOUND...', `> LOADING: ${gameState.playerName}`, `> RANK: ${getCadetRank().toUpperCase()}`, '> ALL SYSTEMS READY.' ];
-                } else {
-                    logs = [ 'SYSTEM CHECK...', '> NAV MODULES...........LOADED', '> ARITHMETIC CORE.......ONLINE', '> AWAITING CADET INPUT...' ];
-                }
-                let i = 0;
-                ui.biosLog.innerHTML = '';
-                const interval = setInterval(() => {
-                    if (i < logs.length) { ui.biosLog.innerHTML += `<div>${logs[i]}</div>`; i++; } 
-                    else { clearInterval(interval); setTimeout(() => showScreen('title'), 1000); }
-                }, 500);
-            }
-            buildAlphaKeyboard = function() { const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(''); ui.alphaKeyboard.innerHTML = alphabet.map(char => `<div class="keyboard-key" data-key="${char}">${char}</div>`).join(''); ui.specialKeys.innerHTML = `<div class="keyboard-key" data-key="BACKSPACE">⌫</div><div class="keyboard-key" data-key="ENTER">ENTER</div>`; }
-            handleNameInput = function(key) { let nameEl = ui.playerNameOutput; let name = nameEl.textContent; switch (key) { case 'BACKSPACE': name = name.slice(0, -1); break; case 'ENTER': if (name.length > 0) { gameState.playerName = name; saveProgress(); setupLevelSelect(); showScreen('levelSelect'); } break; default: if (name.length < 15) name += key; } nameEl.innerHTML = name + '<span class="name-cursor"></span>'; }
-            setupLevelSelect = function() { const rank = getCadetRank(); ui.levelSelectHeader.textContent = `MAPA ESTELAR | ${rank}: ${gameState.playerName}`; ui.levelOptionsContainer.innerHTML = ''; levels.filter(l => l.id !== Infinity).forEach(level => { const btn = document.createElement('div'); btn.className = 'level-btn'; btn.dataset.levelId = level.id; let content = `<strong>${level.name}</strong><small>${level.desc}</small>`; if (level.id > gameState.highestLevelUnlocked) { btn.classList.add('locked'); content = `<strong>${level.name}</strong><small>BLOQUEADO</small>`; } else if (gameState.highScores[level.id] !== undefined) { content += `<span class="level-highscore">RÉCORD: ${gameState.highScores[level.id]}</span>`; } btn.innerHTML = content; ui.levelOptionsContainer.appendChild(btn); }); if(gameState.highestLevelUnlocked > 8) { const btn = document.createElement('div'); btn.className = 'level-btn singularity-btn'; btn.dataset.levelId = Infinity; btn.innerHTML = `<strong>${levels[9].name}</strong><small>${levels[9].desc}</small>`; if(gameState.singularityHighScore > 0) { btn.innerHTML += `<span class="level-highscore">RÉCORD: ${gameState.singularityHighScore}</span>`; } ui.levelOptionsContainer.appendChild(btn); } }
-            buildNumpad = function() { ui.numpad.innerHTML = `<div class="keyboard-key" data-key="7">7</div><div class="keyboard-key" data-key="8">8</div><div class="keyboard-key" data-key="9">9</div><div class="keyboard-key" data-key="4">4</div><div class="keyboard-key" data-key="5">5</div><div class="keyboard-key" data-key="6">6</div><div class="keyboard-key" data-key="1">1</div><div class="keyboard-key" data-key="2">2</div><div class="keyboard-key" data-key="3">3</div><div class="keyboard-key" data-key="CLEAR">⌫</div><div class="keyboard-key" data-key="0">0</div><div class="keyboard-key key-launch" data-key="LAUNCH">↵</div>`; }
-            handleGameInput = function(key) { const answerBox = document.getElementById('answer-box'); if (!answerBox || answerBox.classList.contains('correct') || answerBox.classList.contains('incorrect')) return; let currentAnswer = answerBox.textContent; if (key === 'LAUNCH') { if (currentAnswer) checkAnswer(currentAnswer); } else if (key === 'CLEAR') answerBox.textContent = ''; else if (currentAnswer.length < gameState.currentProblem.answerDigitCount) { answerBox.textContent += key; } }
-            updateGameHeader = function() { ui.gameMissionInfo.textContent = `MISIÓN: ${gameState.currentLevel.name}`; if (gameState.currentLevel.id === Infinity) { ui.gameStats.textContent = `SISTEMAS: ${'● '.repeat(gameState.lives)}${'○ '.repeat(Math.max(0, 3 - gameState.lives))} | RESUELTOS: ${gameState.score}`; } else { ui.gameStats.textContent = `CÁLCULO ${gameState.problemCount}/${gameState.totalProblems} | PUNTOS: ${gameState.score}`; } }
-            displayProblem = function() { const p = gameState.currentProblem; let html; switch(p.template) { case "x+y=?": case "x-y=?": html = `<span>${p.a}</span><span>${p.operator}</span><span>${p.b}</span><span>=</span><div id="answer-box"></div>`; break; case "?+x=y": html = `<div id="answer-box"></div><span>+</span><span>${p.b}</span><span>=</span><span>${p.c}</span>`; break; case "x+?=y": html = `<span>${p.a}</span><span>+</span><div id="answer-box"></div><span>=</span><span>${p.c}</span>`; break; case "?-x=y": html = `<div id="answer-box"></div><span>-</span><span>${p.b}</span><span>=</span><span>${p.c}</span>`; break; case "x-?=y": html = `<span>${p.a}</span><span>-</span><div id="answer-box"></div><span>=</span><span>${p.c}</span>`; break; } ui.problemDisplay.innerHTML = html; }
-            checkAnswer = function(playerAnswer) { const isCorrect = parseInt(playerAnswer) === gameState.currentProblem.answer; const answerBox = document.getElementById('answer-box'); if (isCorrect) { answerBox.classList.add('correct'); if(gameState.currentLevel.id !== Infinity) gameState.score += 10; else gameState.score++; setTimeout(nextProblem, 600); } else { gameState.mistakesTotal++; gameState.mistakesOnCurrentProblem++; answerBox.classList.add('incorrect'); if(gameState.currentLevel.id === Infinity) { gameState.lives--; updateGameHeader(); if(gameState.lives <= 0) { setTimeout(() => endGame(true), 600); return; } } if(gameState.mistakesOnCurrentProblem === 2) { showHint(); } else if (gameState.mistakesOnCurrentProblem >= 3) { answerBox.textContent = gameState.currentProblem.answer; ui.hintDisplay.textContent = '[RESPUESTA CORRECTA CARGADA]'; setTimeout(nextProblem, 2000); return; } setTimeout(() => { answerBox.classList.remove('incorrect'); answerBox.textContent = ''; }, 600); } }
-            showHint = function() { const p = gameState.currentProblem; let hint = ''; switch(p.template){ case "?+x=y": hint = `Intenta: ${p.c} - ${p.b}`; break; case "x+?=y": hint = `Intenta: ${p.c} - ${p.a}`; break; case "?-x=y": hint = `Intenta: ${p.c} + ${p.b}`; break; case "x-?=y": hint = `Intenta: ${p.a} - ${p.c}`; break; } if(hint) ui.hintDisplay.textContent = `[Sugerencia: ${hint}]`; }
-            endGame = function(isInfinite) { if (isInfinite) { if (gameState.score > gameState.singularityHighScore) { gameState.singularityHighScore = gameState.score; } ui.endTitle.textContent = "TRANSMISIÓN FINALIZADA"; ui.endScore.textContent = `CÁLCULOS RESUELTOS: ${gameState.score}`; } else { const levelId = gameState.currentLevel.id; if (gameState.score > (gameState.highScores[levelId] || 0)) { gameState.highScores[levelId] = gameState.score; } if (!gameState.medals[levelId]) gameState.medals[levelId] = {}; const total = gameState.totalProblems * 10; const scoreMedal = gameState.score >= total * 0.9 ? 'gold' : gameState.score >= total * 0.7 ? 'silver' : gameState.score >= total * 0.5 ? 'bronze' : null; if(scoreMedal) { const order = ['bronze', 'silver', 'gold']; if (!gameState.medals[levelId].scoreMedal || order.indexOf(scoreMedal) > order.indexOf(gameState.medals[levelId].scoreMedal)) { gameState.medals[levelId].scoreMedal = scoreMedal; } } if (gameState.mistakesTotal === 0) { gameState.medals[levelId].perfection = true; } if (levelId === gameState.highestLevelUnlocked && gameState.highestLevelUnlocked < 9) { gameState.highestLevelUnlocked++; } ui.endTitle.textContent = "¡MISIÓN COMPLETADA!"; ui.endScore.textContent = `PUNTAJE FINAL: ${gameState.score}`; } saveProgress(); showScreen('end'); ui.endCadetInfo.textContent = `CADETE: ${gameState.playerName}`; }
-
-            init();
-        });
+        init();
+    });
     </script>
 </body>
 </html>
